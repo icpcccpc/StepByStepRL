@@ -58,11 +58,7 @@ class MyRayDAPOTrainer(RayPPOTrainer):
             :, -self.config.data.max_response_length :
         ]
         prompt_length = prompt_mask.sum(dim=1)
-<<<<<<< HEAD
-        response_length = response_mask.sum(dim=1).to(torch.float32)
-=======
         response_length = response_mask.sum(dim=1)
->>>>>>> 2d6a3de (add_data)
         return prompt_length, response_length
 
     def compute_response_prefix_suffix_length(
@@ -72,16 +68,10 @@ class MyRayDAPOTrainer(RayPPOTrainer):
         assert (
             response_length.shape[0] % n_samples == 0
         ), f"can't divide when computing split length , {response_length.shape[0]} % {n_samples} != 0"
-<<<<<<< HEAD
-        grouped_response_length = response_length.reshape(-1, n_samples)
-        grouped_response_length_min = grouped_response_length.min(dim=1).values
-        grouped_response_length_mean = grouped_response_length.mean(dim=1)
-=======
         response_length = response_length.to(torch.float32)
         grouped_response_length = response_length.reshape(-1, n_samples)
         grouped_response_length_mean = grouped_response_length.mean(dim=1)
         grouped_response_length_min = grouped_response_length.min(dim=1).values
->>>>>>> 2d6a3de (add_data)
         grouped_response_length_ratio = 0.3 + 0.4 * torch.rand(
             grouped_response_length_mean.shape,
             device=grouped_response_length_mean.device,
@@ -113,14 +103,6 @@ class MyRayDAPOTrainer(RayPPOTrainer):
         batch_size = len(data)
         prompt_ids_lst = []
         response_prefix_ids_lst = []
-<<<<<<< HEAD
-        for i in range(batch_size):
-            prompt_ids_lst.append(prompt_ids[i, -prompt_length[i] :])
-            response_prefix_ids_lst.append(response_ids[i, : split_index[i] + 1])
-        return {
-            "prompts": prompt_ids_lst,
-            "response_prefixes": response_prefix_ids_lst,
-=======
         response_suffix_ids_lst = []
         for i in range(batch_size):
             prompt_ids_lst.append(prompt_ids[i, -prompt_length[i] :])
@@ -132,7 +114,6 @@ class MyRayDAPOTrainer(RayPPOTrainer):
             "prompts": prompt_ids_lst,
             "response_prefixes": response_prefix_ids_lst,
             "response_suffixes": response_suffix_ids_lst,
->>>>>>> 2d6a3de (add_data)
             "split_index": split_index,
         }
 
@@ -223,8 +204,6 @@ class MyRayDAPOTrainer(RayPPOTrainer):
         )
         return DataProto(batch=batch)
 
-<<<<<<< HEAD
-=======
     def batch_concat_ratio(self, batch1, batch2, ratio):
         """batch1 = batch2 * ratio && interleave"""
         assert (
@@ -241,7 +220,6 @@ class MyRayDAPOTrainer(RayPPOTrainer):
         batch_merged.reorder(reorder_indices)
         return batch_merged
 
->>>>>>> 2d6a3de (add_data)
     def fit(self):
         """
         The training loop of PPO.
@@ -365,67 +343,6 @@ class MyRayDAPOTrainer(RayPPOTrainer):
                             new_batch.batch["reward_baselines"] = reward_baseline_tensor
 
                             del gen_baseline_batch, gen_baseline_output
-<<<<<<< HEAD
-
-                    new_batch_layer1.non_tensor_batch["uid"] = np.array(
-                        [str(uuid.uuid4()) for _ in range(len(new_batch_layer1.batch))],
-                        dtype=object,
-                    )
-                    # repeat to align with repeated responses in rollout
-                    new_batch_layer1 = new_batch_layer1.repeat(
-                        repeat_times=self.config.actor_rollout_ref.rollout.n_layer1,
-                        interleave=True,
-                    )
-                    # batch = batch.union(gen_batch_output)
-                    prompts_response_prefix_suffix_dict = self.split_to_3parts(
-                        gen_batch_output, self.config.actor_rollout_ref.rollout.n_layer1
-                    )
-                    # prompts | response_prefixes | response_suffixes
-                    gen_batch_layer2 = self.prompts_and_response_prefix_to_gen_batch(
-                        prompts=prompts_response_prefix_suffix_dict["prompts"],
-                        response_prefixes=prompts_response_prefix_suffix_dict[
-                            "response_prefixes"
-                        ],
-                    )
-                    gen_batch_layer2 = gen_batch_layer2.repeat(
-                        repeat_times=self.config.actor_rollout_ref.rollout.n_layer2,
-                        interleave=True,
-                    )
-                    with marked_timer("gen_layer2", timing_raw, "red"):
-                        gen_batch_layer2_output = (
-                            self.actor_rollout_wg.generate_sequences(gen_batch_layer2)
-                        )
-                        timing_raw.update(gen_batch_layer2_output.meta_info["timing"])
-                        gen_batch_layer2_output.meta_info.pop("timing", None)
-
-                    new_batch_layer1.non_tensor_batch["layer1_uid"] = np.array(
-                        [str(uuid.uuid4()) for _ in range(len(new_batch_layer1.batch))],
-                        dtype=object,
-                    )
-                    new_batch_layer1.non_tensor_batch["split_index"] = np.array(
-                        prompts_response_prefix_suffix_dict["split_index"], dtype=int
-                    )
-                    # repeat to align with repeated responses in rollout
-                    new_batch_layer2 = new_batch_layer1.repeat(
-                        repeat_times=self.config.actor_rollout_ref.rollout.n_layer2,
-                        interleave=True,
-                    )
-                    new_batch_layer2 = new_batch_layer2.union(gen_batch_layer2_output)
-                    if "response_mask" not in new_batch_layer2.batch:
-                        new_batch_layer2.batch["response_mask"] = compute_response_mask(
-                            new_batch_layer2
-                        )
-
-                    new_batch_layer1 = new_batch_layer1.union(
-                        self.gen_batch_and_response_to_output_DataProto(
-                            gen_batch=gen_batch_layer1,
-                            response_lst=prompts_response_prefix_suffix_dict[
-                                "response_prefixes"
-                            ],
-                        )
-                    )
-                    assert "response_mask" in new_batch_layer1.batch
-=======
                     with marked_timer("process_data", timing_raw, "red"):
                         new_batch_layer1.non_tensor_batch["uid"] = np.array(
                             [
@@ -558,7 +475,6 @@ class MyRayDAPOTrainer(RayPPOTrainer):
                             )
                         )
                         assert "response_mask" in new_batch_layer1.batch
->>>>>>> 2d6a3de (add_data)
 
                     with marked_timer("reward", timing_raw, "yellow"):
                         # compute scores. Support both model and function-based.
@@ -658,35 +574,6 @@ class MyRayDAPOTrainer(RayPPOTrainer):
                         new_batch_layer2.non_tensor_batch["uid"] = (
                             new_batch_layer2.non_tensor_batch["layer1_uid"]
                         )
-<<<<<<< HEAD
-                        new_batch_layer1_list = [
-                            new_batch_layer1[
-                                i : i + self.config.actor_rollout_ref.rollout.n_layer1
-                            ]
-                            for i in range(
-                                0,
-                                len(new_batch_layer1),
-                                self.config.actor_rollout_ref.rollout.n_layer1,
-                            )
-                        ]
-                        rollout_n = (
-                            self.config.actor_rollout_ref.rollout.n_layer1
-                            * self.config.actor_rollout_ref.rollout.n_layer2
-                        )
-                        new_batch_layer2_list = [
-                            new_batch_layer2[i : i + rollout_n]
-                            for i in range(0, len(new_batch_layer2), rollout_n)
-                        ]
-                        new_batch_list = []
-
-                        for mini_batch_layer1, mini_batch_layer2 in zip(
-                            new_batch_layer1_list, new_batch_layer2_list
-                        ):
-                            new_batch_list.append(
-                                DataProto.concat([mini_batch_layer1, mini_batch_layer2])
-                            )
-                        new_batch = DataProto.concat(new_batch_list)
-=======
                         # new_batch = DataProto.concat( [new_batch_layer1 , new_batch_layer2])
                         new_batch = self.batch_concat_ratio(
                             new_batch_layer2,
@@ -694,7 +581,6 @@ class MyRayDAPOTrainer(RayPPOTrainer):
                             self.config.actor_rollout_ref.rollout.n_layer2 + 1,
                         )
 
->>>>>>> 2d6a3de (add_data)
                         """----------------------------------------------------------------"""
 
                         # compute rewards. apply_kl_penalty if available
@@ -749,10 +635,6 @@ class MyRayDAPOTrainer(RayPPOTrainer):
                             for uid, std in prompt_uid2metric_std.items()
                             if std > 0 or len(prompt_uid2metric_vals[uid]) == 1
                         ]
-<<<<<<< HEAD
-                        num_prompt_in_batch += len(kept_prompt_uids)
-=======
->>>>>>> 2d6a3de (add_data)
 
                         kept_traj_idxs = []
                         for idx, traj_from_prompt_uid in enumerate(
@@ -760,38 +642,25 @@ class MyRayDAPOTrainer(RayPPOTrainer):
                         ):
                             if traj_from_prompt_uid in kept_prompt_uids:
                                 kept_traj_idxs.append(idx)
-<<<<<<< HEAD
-
-=======
                         kept_rate2 = len(kept_traj_idxs) / len(new_batch)
                         print(f"{kept_rate2=}")
->>>>>>> 2d6a3de (add_data)
                         new_batch = new_batch[kept_traj_idxs]
                         batch = (
                             new_batch
                             if batch is None
                             else DataProto.concat([batch, new_batch])
                         )
-<<<<<<< HEAD
-=======
                         num_prompt_in_batch = len(batch)
->>>>>>> 2d6a3de (add_data)
 
                         prompt_bsz = self.config.data.train_batch_size
                         if (
                             num_prompt_in_batch
                             < prompt_bsz
                             * self.config.actor_rollout_ref.rollout.n_layer1
-<<<<<<< HEAD
-                        ):
-                            print(
-                                f"{num_prompt_in_batch=} < {prompt_bsz*self.config.actor_rollout_ref.rollout.n_layer1=}"
-=======
                             * self.config.actor_rollout_ref.rollout.n_layer2
                         ):
                             print(
                                 f"{num_prompt_in_batch=} < {prompt_bsz*self.config.actor_rollout_ref.rollout.n_layer1*self.config.actor_rollout_ref.rollout.n_layer2=}"
->>>>>>> 2d6a3de (add_data)
                             )
                             max_num_gen_batches = (
                                 self.config.algorithm.filter_groups.max_num_gen_batches
@@ -965,7 +834,3 @@ class MyRayDAPOTrainer(RayPPOTrainer):
 
                 progress_bar.update(1)
                 self.global_steps += 1
-<<<<<<< HEAD
-=======
-
->>>>>>> 2d6a3de (add_data)
