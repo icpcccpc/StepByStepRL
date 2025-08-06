@@ -589,7 +589,7 @@ class MyRayDAPOTrainer(RayPPOTrainer):
                                                                                     dtype  = new_batch_layer2.batch['token_level_scores'].dtype,
                                                                                     device = new_batch_layer1.batch.device )
                         for i,(split_index,uid) in enumerate(zip(new_batch_layer1.non_tensor_batch["split_index"] , new_batch_layer1.non_tensor_batch["layer1_uid"] )):
-                            new_batch_layer1.batch["token_level_scores"][ i,split_index ] = float(np.mean( prompt_prefix_uid2_scores[uid] ) )
+                            new_batch_layer1.batch["token_level_scores"][ i,split_index ] = float(np.max( prompt_prefix_uid2_scores[uid] ) )
                         
                         if reward_extra_infos_dict:
                             #for k,v in reward_extra_infos_dict.items():
@@ -809,4 +809,3 @@ class MyRayDAPOTrainer(RayPPOTrainer):
 
                 progress_bar.update(1)
                 self.global_steps += 1
-
